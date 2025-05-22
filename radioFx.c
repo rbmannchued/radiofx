@@ -3,7 +3,7 @@
 #include <string.h>
 #include "lv2/core/lv2.h"
 
-#define BANDPASS_URI "http://example.org/plugins/bandPass"
+#define RADIOFX_URI "https://github.com/rbmannchued/radiofx"
 
 typedef struct {
     float* input;
@@ -11,7 +11,7 @@ typedef struct {
     float* cutoff_control;
     float* bypass;
     float* quality_control;
-    //float* band_gain;
+    float* band_gain;
     
     float samplerate;
 
@@ -37,8 +37,8 @@ static void update_filter(Bandpass* self) {
     float norm = *(self->cutoff_control);  // 0.0 a 1.0
 
     float center = 2500.0f;  // Hz
-    float min_bandwidth = 100.0f;   // faixa mínima: 100 Hz
-    float max_bandwidth = 4800.0f;  // faixa máxima: 4800 Hz
+    float min_bandwidth = 100.0f;  
+    float max_bandwidth = 4800.0f;  
 
     float bandwidth = min_bandwidth + norm * (max_bandwidth - min_bandwidth);
     float delta = bandwidth / 2.0f;
@@ -91,7 +91,7 @@ static void update_filter(Bandpass* self) {
         self->lp_a2 = a2 / a0;
     }
 
-    // Ganho fixo (ou você pode controlar via outro knob)
+    //fix gain
     self->b0 = 1.0f;
 }
 
@@ -123,18 +123,25 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data) {
     case 4:
 	self->quality_control = (float*)data;
 	break;
-    /* case 5: */
-    /* 	self->band_gain = (float*)data; */
-    /* 	break; */
+    case 5:
+	self->band_gain = (float*)data;
+	break;
 	
-    /* } */
+    }
 }
 
 static void activate(LV2_Handle instance) {
-    /* self->ds_counter = 0; */
-    /* self->ds_hold_sample = 0.0f; */
+    Bandpass* self = (Bandpass*)instance;
 
+    self->hp_x1 = self->hp_x2 = 0.0f;
+    self->hp_y1 = self->hp_y2 = 0.0f;
+    self->lp_x1 = self->lp_x2 = 0.0f;
+    self->lp_y1 = self->lp_y2 = 0.0f;
+
+    self->ds_counter = 0;
+    self->ds_hold_sample = 0.0f;
 }
+
 static void run(LV2_Handle instance, uint32_t n_samples) {
     Bandpass* self = (Bandpass*)instance;
 
@@ -143,40 +150,43 @@ static void run(LV2_Handle instance, uint32_t n_samples) {
             self->output[i] = self->input[i];
         }
     } else {
-        update_filter(self);
+        update_filter(self);  // Atualiza os coeficientes dos filtros
 
         for (uint32_t i = 0; i < n_samples; ++i) {
             float x = self->input[i];
 
-            // High-pass
+            // Filtro High-pass
             float hp = self->hp_b0 * x
-                    + self->hp_b1 * self->hp_x1
-                    + self->hp_b2 * self->hp_x2
-                    - self->hp_a1 * self->hp_y1
-                    - self->hp_a2 * self->hp_y2;
+                     + self->hp_b1 * self->hp_x1
+                     + self->hp_b2 * self->hp_x2
+                     - self->hp_a1 * self->hp_y1
+                     - self->hp_a2 * self->hp_y2;
 
             self->hp_x2 = self->hp_x1;
             self->hp_x1 = x;
             self->hp_y2 = self->hp_y1;
             self->hp_y1 = hp;
 
-            // Low-pass
+            // Filtro Low-pass
             float lp = self->lp_b0 * hp
-                    + self->lp_b1 * self->lp_x1
-                    + self->lp_b2 * self->lp_x2
-                    - self->lp_a1 * self->lp_y1
-                    - self->lp_a2 * self->lp_y2;
+                     + self->lp_b1 * self->lp_x1
+                     + self->lp_b2 * self->lp_x2
+                     - self->lp_a1 * self->lp_y1
+                     - self->lp_a2 * self->lp_y2;
 
             self->lp_x2 = self->lp_x1;
             self->lp_x1 = hp;
             self->lp_y2 = self->lp_y1;
             self->lp_y1 = lp;
 
-            // Downsampling (sample and hold)
+            // Aplica ganho à banda central
+            float band = lp * *(self->band_gain);
+
+            // Downsampling por sample-and-hold
             uint32_t ds_factor = 1 + (uint32_t)((1.0f - *(self->quality_control)) * 40.0f);
-            
+
             if (self->ds_counter == 0) {
-                self->ds_hold_sample = lp * self->b0;  // aplica ganho aqui
+                self->ds_hold_sample = band;
                 self->ds_counter = ds_factor;
             } else {
                 self->ds_counter--;
@@ -194,7 +204,7 @@ static void cleanup(LV2_Handle instance) {
 }
 
 static const LV2_Descriptor descriptor = {
-    BANDPASS_URI,
+    RADIOFX_URI,
     instantiate,
     connect_port,
     activate,

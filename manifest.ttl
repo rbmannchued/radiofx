@@ -1,8 +1,8 @@
 @prefix lv2: <http://lv2plug.in/ns/lv2core#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-<http://example.org/plugins/bandPass>
+<https://github.com/rbmannchued/radiofx>
     a lv2:Plugin ;
-    lv2:binary <bandPass.so> ;
-    rdfs:seeAlso <bandPass.ttl> ;
+    lv2:binary <radioFx.so> ;
+    rdfs:seeAlso <radioFx.ttl> ;
     rdfs:label "Radio Filter (Band-Pass)" .
