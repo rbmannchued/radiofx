@@ -1,6 +1,6 @@
 # RadioFx
 
-This is a cheap radio/telephone lo-fi effect plugin for mixing.
+This is a radio/telephone lo-fi effect plugin for mixing.
 
 # Build
 

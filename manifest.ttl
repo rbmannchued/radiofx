@@ -1,8 +1,15 @@
 @prefix lv2: <http://lv2plug.in/ns/lv2core#> .
+@prefix ui:  <http://lv2plug.in/ns/extensions/ui#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 <https://github.com/rbmannchued/radiofx>
     a lv2:Plugin ;
     lv2:binary <radioFx.so> ;
-    rdfs:seeAlso <radioFx.ttl> ;
-    rdfs:label "Radio Filter (Band-Pass)" .
+    rdfs:seeAlso <radioFx.ttl> .
+
+<https://github.com/rbmannchued/radiofx#ui>
+    a ui:X11UI ;
+    ui:binary <radioFx_ui.so> ;
+    ui:plugin <https://github.com/rbmannchued/radiofx> ;
+    ui:supports ui:idleInterface ;
+    rdfs:seeAlso <radioFx.ttl> .
